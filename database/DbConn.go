@@ -2,7 +2,6 @@ package database
 
 import (
 	"fmt"
-	"github.com/devtaofeek/ContactApp.Api/models"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/joho/godotenv"
@@ -33,10 +32,7 @@ if env_load_err!= nil{
 
 }
 
-func CreateDb()  {
-	err:= GetDB().CreateTable(models.User{},models.Contact{})
-	fmt.Println(err)
-}
+
 func GetDB() *gorm.DB {
 	return db
 

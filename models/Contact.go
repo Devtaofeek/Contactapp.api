@@ -1,8 +1,9 @@
 package models
 
+import "github.com/jinzhu/gorm"
+
 type Contact struct {
-	ID int
-	UserID int
+	gorm.Model
 	Name string
 	PhoneticName string
 	NickName string
@@ -12,4 +13,5 @@ type Contact struct {
 	Email string
 	Address string
 	Relationship string
+	Userid uint
 }
