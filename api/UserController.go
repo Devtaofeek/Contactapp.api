@@ -37,5 +37,12 @@ fmt.Println("sign out hit")
 }
 
 var RefreshTokenController = func(w http.ResponseWriter, r *http.Request) {
-fmt.Println("refrsh token hit")
+	user := r.Context().Value("user").(int64)
+   resp, err := models.RefreshToken(uint(user))
+   if err!=nil{
+   	w.WriteHeader(http.StatusInternalServerError)
+	   Respond(w, Message(false,"Invalid request"))
+	   return
+   }
+   Respond(w,resp)
 }

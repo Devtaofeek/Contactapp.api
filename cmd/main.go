@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	Controllers "github.com/devtaofeek/ContactApp.Api/api"
+	"github.com/devtaofeek/ContactApp.Api/app"
 	"github.com/devtaofeek/ContactApp.Api/database"
 	"github.com/devtaofeek/ContactApp.Api/models"
 	"github.com/gorilla/mux"
@@ -13,6 +14,7 @@ import (
 
 func main() {
 	var r = mux.NewRouter()
+	r.Use(app.JwtAuth)
 	port := os.Getenv("PORT")
 	r.HandleFunc("/api/user/login",Controllers.LoginController).Methods("POST")
 	r.HandleFunc("/api/user/register", Controllers.RegisterController).Methods("POST")

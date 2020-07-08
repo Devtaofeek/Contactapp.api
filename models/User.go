@@ -3,9 +3,13 @@ package models
 import (
 	. "github.com/devtaofeek/ContactApp.Api/Utils"
 	"github.com/devtaofeek/ContactApp.Api/database"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
+	"os"
 	"regexp"
+	"time"
 )
 
 type User struct {
@@ -14,7 +18,15 @@ type User struct {
 	Password string
 	Contacts []Contact `gorm:"foreignkey:Userid"`
 }
-
+type TokenDetails struct {
+	ID    uint64
+	AccessToken  string
+	RefreshToken string
+	AccessUuid   string
+	RefreshUuid  string
+	AtExpires    int64
+	RtExpires    int64
+}
 type Authmodel struct {
 	Email    string
 	Password string
@@ -26,6 +38,7 @@ func (authmodel *Authmodel) Validate() (map[string]interface{},bool) {
 	var ok bool
 	var user = &User{}
 	var err = database.GetDB().Table("users").Where("email=?", authmodel.Email).Find(user).Error
+	CreateToken(uint64(user.ID))
 	if err!= nil && err != gorm.ErrRecordNotFound{
 		return Message(false,"could not create account please try again"),false
 	}
@@ -65,7 +78,14 @@ func (authmodel *Authmodel) CreateAccount() map[string]interface{}  {
 		resp := Message(false,"could not create account please try again")
 		return resp
 	}else {
+
+
+		token,err := CreateToken(uint64(user.ID))
+		if err!= nil{
+			return Message(false,"could not complete the request please try again")
+		}
 		resp := Message(true, "User created successfully")
+		resp["token"] = token
 		return resp
 	}
 
@@ -73,6 +93,7 @@ func (authmodel *Authmodel) CreateAccount() map[string]interface{}  {
 }
 
 func Login(Email string, Password string) map[string]interface{} {
+
    var user = &User{}
    err := database.GetDB().Table("users").Where("email=?", Email).Find(user).Error
 
@@ -90,5 +111,57 @@ func Login(Email string, Password string) map[string]interface{} {
    	  	return  Message(false,"user name or password is incorrect")
 	  }
    }
- return Message(true,"")
+
+token,err := CreateToken(uint64(user.ID))
+if err!= nil{
+	return Message(false,"could not complete the request please try again")
 }
+resp := Message(true,"Login successful")
+resp["token"] = token
+return resp
+}
+
+func CreateToken(id uint64) (*TokenDetails, error) {
+	tokendetails := &TokenDetails{}
+	tokendetails.ID  = id
+	tokendetails.AtExpires = time.Now().Add(time.Minute *5).Unix()
+	tokendetails.AccessUuid  = uuid.New().String()
+	tokendetails.RefreshUuid = uuid.New().String()
+	tokendetails.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
+
+	atclaims := jwt.MapClaims{}
+	atclaims["authorized"] = true
+	atclaims["access_uuid"] = tokendetails.AccessUuid
+	atclaims["userid"] = id
+	atclaims["exp"] = tokendetails.AtExpires
+	at := jwt.NewWithClaims(jwt.SigningMethodHS256,atclaims)
+	var err error
+	tokendetails.AccessToken, err = at.SignedString([]byte(os.Getenv("atsecret")))
+	if err!= nil {
+		return nil, err
+	}
+
+	rtclaims := jwt.MapClaims{}
+	rtclaims["refreshuuid"] = tokendetails.RefreshUuid
+	rtclaims["refreshexpiry"] = tokendetails.RtExpires
+	rtclaims["userid"] = id
+	rt := jwt.NewWithClaims(jwt.SigningMethodHS256,rtclaims)
+	tokendetails.RefreshToken , err = rt.SignedString([]byte(os.Getenv("rtsecret")))
+	if err!= nil{
+		return nil, err
+	}
+
+return tokendetails, nil
+}
+
+func RefreshToken(id uint) (map[string]interface{},error) {
+	token, err:= CreateToken(uint64(id))
+	if err!=nil{
+		return  Message(false,"Invalid Request"), err
+	}
+	resp := Message(true,"")
+	resp["token"] = token
+	return resp ,err
+}
+
+
