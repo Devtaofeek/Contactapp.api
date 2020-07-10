@@ -4,6 +4,7 @@ import (
 	. "github.com/devtaofeek/ContactApp.Api/Utils"
 	"github.com/devtaofeek/ContactApp.Api/database"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/go-redis/redis/v7"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
@@ -18,6 +19,7 @@ type User struct {
 	Password string
 	Contacts []Contact `gorm:"foreignkey:Userid"`
 }
+var client *redis.Client
 type TokenDetails struct {
 	ID    uint64
 	AccessToken  string
@@ -32,6 +34,19 @@ type Authmodel struct {
 	Password string
 }
 
+func init()  {
+	dsn := os.Getenv("REDIS_DSN")
+	if len(dsn) == 0 {
+		dsn = "localhost:6379"
+	}
+	client = redis.NewClient(&redis.Options{
+		Addr: dsn,
+	})
+	_, err := client.Ping().Result()
+	if err != nil {
+		panic(err)
+	}
+}
 func (authmodel *Authmodel) Validate() (map[string]interface{},bool) {
 	emailregex := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 	var response = make(map[string]interface{})
@@ -151,6 +166,10 @@ func CreateToken(id uint64) (*TokenDetails, error) {
 		return nil, err
 	}
 
+	err = PersistToken(*tokendetails)
+if err!=nil{
+	return nil,err
+}
 return tokendetails, nil
 }
 
@@ -164,4 +183,37 @@ func RefreshToken(id uint) (map[string]interface{},error) {
 	return resp ,err
 }
 
+func PersistToken(details TokenDetails) error  {
+at:= time.Unix(details.AtExpires,0)
+rt:= time.Unix(details.RtExpires,0)
+now := time.Now()
+access := client.Set(details.AccessUuid, int(details.ID),at.Sub(now))
+if access.Err() != nil{
+	return access.Err()
+}
 
+refresh := client.Set(details.RefreshUuid, int(details.ID),rt.Sub(now))
+
+if refresh.Err() != nil{
+	return refresh.Err()
+}
+return nil
+}
+
+func Fetchredis(accessuid string) error {
+	_,err := client.Get(accessuid).Result()
+	if err!=nil{
+		return err
+	}
+	return nil
+}
+
+func DeleteFromredis(accessuuid string) error  {
+  _ , erraccess  := client.Del(accessuuid).Result()
+
+
+  if erraccess!=nil{
+  	return erraccess
+  }
+return nil
+}

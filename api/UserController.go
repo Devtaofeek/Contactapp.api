@@ -46,3 +46,15 @@ var RefreshTokenController = func(w http.ResponseWriter, r *http.Request) {
    }
    Respond(w,resp)
 }
+
+var LogoutController = func(w http.ResponseWriter, r *http.Request) {
+	accessuuid := r.Context().Value("accessUuid").(string)
+	err  := models.DeleteFromredis(accessuuid)
+	if err!=nil{
+		Respond(w,Message(false,"Invalid request"))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	Respond(w,Message(true,"Log out successful"))
+}

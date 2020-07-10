@@ -6,12 +6,13 @@ import (
 	"github.com/devtaofeek/ContactApp.Api/app"
 	"github.com/devtaofeek/ContactApp.Api/database"
 	"github.com/devtaofeek/ContactApp.Api/models"
+	"github.com/go-redis/redis/v7"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"os"
 )
-
+var client redis.Client
 func main() {
 	var r = mux.NewRouter()
 	r.Use(app.JwtAuth)
@@ -20,6 +21,9 @@ func main() {
 	r.HandleFunc("/api/user/register", Controllers.RegisterController).Methods("POST")
 	r.HandleFunc("/api/user/signout",Controllers.SignOutController).Methods("POST")
 	r.HandleFunc("/api/user/refreshtoken", Controllers.RefreshTokenController).Methods("POST")
+	r.HandleFunc("/api/user/logout",Controllers.LogoutController).Methods("POST")
+	r.HandleFunc("/api/user/GetContacts",Controllers.GetContactsControllers).Methods("POST")
+
 	if port == "" {
 		port = "8000" //localhost
 	}
@@ -35,6 +39,8 @@ func CreateDb()  {
 	database.GetDB().AutoMigrate(models.User{},models.Contact{})
 	database.GetDB().Model(models.Contact{}).AddForeignKey("userid","users(id)","CASCADE","CASCADE")
 	fmt.Println(err)
+	
+// the only reason why am using redis is to forcefully invalidate the token when a user logs in before expiry
 }
 
 
