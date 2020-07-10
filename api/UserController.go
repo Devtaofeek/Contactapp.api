@@ -38,13 +38,15 @@ fmt.Println("sign out hit")
 
 var RefreshTokenController = func(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value("user").(int64)
-   resp, err := models.RefreshToken(uint(user))
+   resp, err := models.RefreshToken(int(user))
    if err!=nil{
    	w.WriteHeader(http.StatusInternalServerError)
 	   Respond(w, Message(false,"Invalid request"))
 	   return
    }
    Respond(w,resp)
+
+
 }
 
 var LogoutController = func(w http.ResponseWriter, r *http.Request) {

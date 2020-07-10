@@ -112,20 +112,18 @@ func Login(Email string, Password string) map[string]interface{} {
    var user = &User{}
    err := database.GetDB().Table("users").Where("email=?", Email).Find(user).Error
 
-   if err!=nil {
+   if err!=nil && err== gorm.ErrRecordNotFound {
 
-   	return  Message(false,"please try again")
-
-   }else if err == gorm.ErrRecordNotFound {
-
-   	return Message(false,"Email or password is incorrect")
+   	return  Message(false,"Email or password id incorrect")
 
    }else {
-   	  err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(Password))
-   	  if err != nil && err == bcrypt.ErrMismatchedHashAndPassword{
-   	  	return  Message(false,"user name or password is incorrect")
-	  }
+	   err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(Password))
+	   if err != nil && err == bcrypt.ErrMismatchedHashAndPassword{
+		   return  Message(false,"user name or password is incorrect")
+	   }
    }
+
+
 
 token,err := CreateToken(uint64(user.ID))
 if err!= nil{
@@ -139,7 +137,7 @@ return resp
 func CreateToken(id uint64) (*TokenDetails, error) {
 	tokendetails := &TokenDetails{}
 	tokendetails.ID  = id
-	tokendetails.AtExpires = time.Now().Add(time.Minute *5).Unix()
+	tokendetails.AtExpires = time.Now().Add(time.Minute *30).Unix() // TODO reset access token to five
 	tokendetails.AccessUuid  = uuid.New().String()
 	tokendetails.RefreshUuid = uuid.New().String()
 	tokendetails.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
@@ -159,6 +157,7 @@ func CreateToken(id uint64) (*TokenDetails, error) {
 	rtclaims := jwt.MapClaims{}
 	rtclaims["refreshuuid"] = tokendetails.RefreshUuid
 	rtclaims["refreshexpiry"] = tokendetails.RtExpires
+	rtclaims["access_uuid"] = tokendetails.AccessUuid
 	rtclaims["userid"] = id
 	rt := jwt.NewWithClaims(jwt.SigningMethodHS256,rtclaims)
 	tokendetails.RefreshToken , err = rt.SignedString([]byte(os.Getenv("rtsecret")))
@@ -173,7 +172,8 @@ if err!=nil{
 return tokendetails, nil
 }
 
-func RefreshToken(id uint) (map[string]interface{},error) {
+
+func RefreshToken(id int) (map[string]interface{},error) {
 	token, err:= CreateToken(uint64(id))
 	if err!=nil{
 		return  Message(false,"Invalid Request"), err
@@ -182,6 +182,7 @@ func RefreshToken(id uint) (map[string]interface{},error) {
 	resp["token"] = token
 	return resp ,err
 }
+
 
 func PersistToken(details TokenDetails) error  {
 at:= time.Unix(details.AtExpires,0)
