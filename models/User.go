@@ -137,7 +137,7 @@ return resp
 func CreateToken(id uint64) (*TokenDetails, error) {
 	tokendetails := &TokenDetails{}
 	tokendetails.ID  = id
-	tokendetails.AtExpires = time.Now().Add(time.Minute *30).Unix() // TODO reset access token to five
+	tokendetails.AtExpires = time.Now().Add(time.Hour * 2).Unix() // TODO reset access token to five
 	tokendetails.AccessUuid  = uuid.New().String()
 	tokendetails.RefreshUuid = uuid.New().String()
 	tokendetails.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()

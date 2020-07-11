@@ -21,6 +21,10 @@ func main() {
 	r.HandleFunc("/api/user/refreshtoken", Controllers.RefreshTokenController).Methods("POST")
 	r.HandleFunc("/api/user/logout",Controllers.LogoutController).Methods("POST")
 	r.HandleFunc("/api/user/GetContact/{id}",Controllers.GetContactController).Methods("GET")
+	r.HandleFunc("/api/user/GetContact",Controllers.GetContactsControllers).Methods("GET")
+	r.HandleFunc("/api/user/DeleteContact/{id}",Controllers.DeleteContactController).Methods("DELETE")
+	r.HandleFunc("/api/user/UpdateContact",Controllers.UpdateContactController).Methods("PUT")
+
 	r.HandleFunc("/api/user/createcontact",Controllers.CreateContactController).Methods("POST")
 
 	if port == "" {

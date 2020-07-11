@@ -21,6 +21,17 @@ type Contact struct {
 	Userid uint
 }
 
+func GetContacts(userid uint) map[string]interface{}  {
+	contacts:= make([]*Contact,0)
+	var err = GetDB().Table("contacts").Where("userid=?",userid).Find(&contacts).Error
+	if err!=nil{
+		Message(false,"Please try again later")
+	}
+	resp := Message(true,"All contacts retrieved")
+
+	resp["contacts"] = contacts
+	return resp
+}
 func (contact Contact) ValidateContact() (map[string]interface{},bool)  {
 	emailregex := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
@@ -63,19 +74,30 @@ if err!=nil{
 	if err == gorm.ErrRecordNotFound{
           return Message(false,"record not found")
 	}
-
 	resp := Message(true,"")
-	returncontact := struct {ID uint; Name string;Email string; Phone string;
-	PhoneticName string;NickName string;JobTitle string;Company string;Address string;Relationship string;Userid uint}{}
-	returncontact.Userid = contact.Userid
-	returncontact.ID = contact.ID
-	returncontact.Phone = contact.Phone
-	returncontact.Email = contact.Email
-	returncontact.Address = contact.Address
-	returncontact.JobTitle = contact.JobTitle;
-	returncontact.NickName = contact.NickName
-	returncontact.PhoneticName = contact.PhoneticName
-	returncontact.Relationship = contact.Relationship
-	resp["contact"] = returncontact
+	resp["contact"] = contact
 	return resp
 }
+
+func DeleteContact(userid int,contactid int)  map[string]interface{} {
+	contact:= &Contact{}
+var err = GetDB().Table("contacts").Where("userid=? AND id=?",userid,contactid).Delete(contact)
+if err!= nil{
+	Message(false,"Please try agiain")
+}
+return Message(true,"Contact deleted successfully")
+}
+
+func (contact *Contact) UpdateContact() map[string]interface{}  {
+
+	var errr = GetDB().Save(&contact).Error
+	if errr != nil && errr==gorm.ErrRecordNotFound{
+		Message(false,"record not found")
+	}
+
+resp:=	Message(true,"Contact updated  successfully")
+resp["contact"] = contact
+return resp
+
+}
+
