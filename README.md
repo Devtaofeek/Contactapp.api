@@ -1,5 +1,5 @@
 # Contactapp.api
-This is a secured restful web api written in Golang, It saves,updates,creates and deletes contacts from a postgres database.
+# This is a secured restful web api written in Golang, It saves,updates,creates and deletes contacts from a postgres database.
 The intial code base for this project was written by https://github.com/adigunhammedolalekan, I learnt how to build web api using go programming language by studying this project,
 
 I rewrote the code three times until i understood what every line does.
